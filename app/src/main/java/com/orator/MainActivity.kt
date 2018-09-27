@@ -39,11 +39,11 @@ class MainActivity : AppCompatActivity() {
     private fun showTime() {
         Single.fromCallable{ NTPUDPClient().apply { defaultTimeout = 3000; open() } }
                 .repeatWhen{ completed -> completed.delay(100, TimeUnit.MILLISECONDS) }
-                .map { client -> client.getTime(InetAddress.getByName("time.google.com")).message.transmitTimeStamp.date }
+                .map { client -> client.getTime(InetAddress.getByName("time.google.com")).message.transmitTimeStamp.date.time }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { apacheTime ->
-                    apache.text = apacheTime.time.toString()
+                    apache.text = apacheTime.toString()
                 }
 
         Single.fromCallable { TrueTimeRx.now().time }
