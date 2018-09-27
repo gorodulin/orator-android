@@ -45,27 +45,25 @@ class MainActivity : AppCompatActivity() {
                 .map { client -> Pair(client.getTime(InetAddress.getByName("time.google.com")).message.transmitTimeStamp.date.time, Calendar.getInstance().timeInMillis) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { (apacheTime, systemTime) ->
-                    apacheDiv = apacheTime - systemTime
-                }
+                .subscribe({ (apacheTime, systemTime) ->
+                    apacheDiv = apacheTime.minus(systemTime)
+                }, { throwable -> throwable.printStackTrace() })
 
-        Single.fromCallable { TrueTimeRx.now().time }
+        Single.fromCallable { Pair(TrueTimeRx.now().time, Calendar.getInstance().timeInMillis) }
                 .repeatWhen{ completed -> completed.delay(3, TimeUnit.SECONDS) }
-                .map { time -> Pair(time, Calendar.getInstance().timeInMillis) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe{ (trueTime, systemTime) ->
-                    trueTimeDiv = trueTime - systemTime
-                }
+                .subscribe({ (trueTime, systemTime) ->
+                    trueTimeDiv = trueTime.minus(systemTime)
+                }, { throwable -> throwable.printStackTrace() })
 
-        Single.fromCallable { Tempo.now() }
+        Single.fromCallable { Pair(Tempo.now(), Calendar.getInstance().timeInMillis) }
                 .repeatWhen{ completed -> completed.delay(3, TimeUnit.SECONDS) }
-                .map { time -> Pair(time, Calendar.getInstance().timeInMillis) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe{ (tempoTime, systemTime) ->
-                    tempoDiv = tempoTime - systemTime
-                }
+                .subscribe({ (tempoTime, systemTime) ->
+                    tempoDiv = tempoTime?.minus(systemTime) ?: tempoDiv
+                }, { throwable -> throwable.printStackTrace() })
 
         Single.fromCallable { Calendar.getInstance().timeInMillis }
                 .repeat()
