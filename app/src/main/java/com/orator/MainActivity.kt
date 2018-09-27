@@ -35,39 +35,47 @@ class MainActivity : AppCompatActivity() {
                 }
     }
 
-    @SuppressLint("CheckResult")
+    @SuppressLint("CheckResult", "SetTextI18n")
     private fun showTime() {
+        var apacheDiv = 0L
+        var trueTimeDiv = 0L
+        var tempoDiv = 0L
         Single.fromCallable{ NTPUDPClient().apply { defaultTimeout = 3000; open() } }
-                .repeatWhen{ completed -> completed.delay(100, TimeUnit.MILLISECONDS) }
-                .map { client -> client.getTime(InetAddress.getByName("time.google.com")).message.transmitTimeStamp.date.time }
+                .repeatWhen{ completed -> completed.delay(3, TimeUnit.SECONDS) }
+                .map { client -> Pair(client.getTime(InetAddress.getByName("time.google.com")).message.transmitTimeStamp.date.time, Calendar.getInstance().timeInMillis) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { apacheTime ->
-                    apache.text = apacheTime.toString()
+                .subscribe { (apacheTime, systemTime) ->
+                    apacheDiv = apacheTime - systemTime
                 }
 
         Single.fromCallable { TrueTimeRx.now().time }
-                .repeatWhen{ completed -> completed.delay(100, TimeUnit.MILLISECONDS) }
+                .repeatWhen{ completed -> completed.delay(3, TimeUnit.SECONDS) }
+                .map { time -> Pair(time, Calendar.getInstance().timeInMillis) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe{ truetimeDate->
-                    truetime.text = truetimeDate.toString()
+                .subscribe{ (trueTime, systemTime) ->
+                    trueTimeDiv = trueTime - systemTime
                 }
 
         Single.fromCallable { Tempo.now() }
-                .repeatWhen{ completed -> completed.delay(100, TimeUnit.MILLISECONDS) }
+                .repeatWhen{ completed -> completed.delay(3, TimeUnit.SECONDS) }
+                .map { time -> Pair(time, Calendar.getInstance().timeInMillis) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe{ tempoDate ->
-                    tempo.text = tempoDate.toString()
+                .subscribe{ (tempoTime, systemTime) ->
+                    tempoDiv = tempoTime - systemTime
                 }
 
         Single.fromCallable { Calendar.getInstance().timeInMillis }
-                .repeatWhen{ completed -> completed.delay(100, TimeUnit.MILLISECONDS) }
+                .repeat()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe{ androidDate ->
-                    android.text = androidDate.toString()
+                .subscribe{ androidTime ->
+                    apache.text = "Apache: ${androidTime + apacheDiv}   Div: $apacheDiv"
+                    truetime.text = "TrueTime: ${androidTime + trueTimeDiv}   Div: $trueTimeDiv"
+                    tempo.text = "Tempo: ${androidTime + tempoDiv}   Div: $tempoDiv"
+                    android.text = "System: $androidTime"
                 }
     }
 }
